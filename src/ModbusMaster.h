@@ -201,6 +201,7 @@ class ModbusMaster
     void send(uint32_t);
     uint8_t available(void);
     uint16_t receive(void);
+    void setDbg(Stream *s) {_dbg=s;}
     uint16_t getResponseTimeout() { return ku16MBResponseTimeout; }
     void setResponseTimeout(uint16_t ms) {ku16MBResponseTimeout=ms; }
     
@@ -220,6 +221,7 @@ class ModbusMaster
     
   private:
     Stream* _serial;                                             ///< reference to serial port object
+    Stream* _dbg;                                                ///< reference to optional diagnostic stream
     uint8_t  _u8MBSlave;                                         ///< Modbus slave (1..255) initialized in begin()
     static const uint8_t ku8MaxBufferSize                = 64;   ///< size of response/transmit buffers    
     uint16_t _u16ReadAddress;                                    ///< slave register from which to read

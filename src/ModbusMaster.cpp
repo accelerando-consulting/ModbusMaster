@@ -30,10 +30,16 @@ Arduino library for communicating with Modbus slaves over RS232/485 (via RTU pro
 #include "ModbusMaster.h"
 
 
+
 /* _____GLOBAL VARIABLES_____________________________________________________ */
 
 
 /* _____PUBLIC FUNCTIONS_____________________________________________________ */
+
+/* Debug Macros */
+#define MSG(s) if(_dbg) _dbg->println(s)
+#define MSGf(...) if(_dbg) _dbg->printf(__VA_ARGS__)
+
 /**
 Constructor.
 
@@ -702,6 +708,7 @@ uint8_t ModbusMaster::ModbusMasterTransaction(uint8_t u8MBFunction)
   u8ModbusADU[u8ModbusADUSize] = 0;
 
   // flush receive buffer before transmitting request
+  MSGf("Flush receive @%lu\n",millis());
   while (_serial->read() != -1);
 
   // transmit request
@@ -709,12 +716,14 @@ uint8_t ModbusMaster::ModbusMasterTransaction(uint8_t u8MBFunction)
   {
     _preTransmission();
   }
+  MSGf("Write data (%d) @%lu\n", u8ModbusADUSize, millis());
   for (i = 0; i < u8ModbusADUSize; i++)
   {
     _serial->write(u8ModbusADU[i]);
   }
   
   u8ModbusADUSize = 0;
+  MSGf("flush transmit @%lu\n",millis());
   _serial->flush();    // flush transmit buffer
   if (_postTransmission)
   {
@@ -756,6 +765,7 @@ uint8_t ModbusMaster::ModbusMasterTransaction(uint8_t u8MBFunction)
       // verify response is for correct Modbus slave
       if (u8ModbusADU[0] != _u8MBSlave)
       {
+	MSG("response has invalid slave id");
         u8MBStatus = ku8MBInvalidSlaveID;
         break;
       }
@@ -763,6 +773,7 @@ uint8_t ModbusMaster::ModbusMasterTransaction(uint8_t u8MBFunction)
       // verify response is for correct Modbus function code (mask exception bit 7)
       if ((u8ModbusADU[1] & 0x7F) != u8MBFunction)
       {
+	MSG("response has invalid function");
         u8MBStatus = ku8MBInvalidFunction;
         break;
       }
@@ -771,9 +782,9 @@ uint8_t ModbusMaster::ModbusMasterTransaction(uint8_t u8MBFunction)
       if (bitRead(u8ModbusADU[1], 7))
       {
         u8MBStatus = u8ModbusADU[2];
+	MSGf("response is exception %d\n", (int)u8MBStatus);
         break;
       }
-      
       // evaluate returned Modbus function code
       switch(u8ModbusADU[1])
       {
@@ -797,6 +808,18 @@ uint8_t ModbusMaster::ModbusMasterTransaction(uint8_t u8MBFunction)
           break;
       }
     }
+    if (_dbg) {
+      MSGf("Response for FC %d has %d more bytes\n", (int)u8ModbusADU[1], (int)u8BytesLeft);
+      /*MSG("Header was:");
+      for (i = 0; i < u8ModbusADUSize; i++) {
+	MSGf(" %02x", u8ModbusADU[i]);
+       }
+      MSG("");
+      */
+    }
+    if (u8ModbusADUSize) {
+      //MSGf("  got %d expecting %d more bytes\n", (int)u8ModbusADUSize, (int)u8BytesLeft);
+    }
     if ((millis() - u32StartTime) > ku16MBResponseTimeout)
     {
       u8MBStatus = ku8MBResponseTimedOut;
@@ -806,17 +829,28 @@ uint8_t ModbusMaster::ModbusMasterTransaction(uint8_t u8MBFunction)
   // verify response is large enough to inspect further
   if (!u8MBStatus && u8ModbusADUSize >= 5)
   {
+#if 0
+      if (_dbg) {
+	  MSGf("  Response of %d:", u8ModbusADUSize);
+	  for (i = 0; i < u8ModbusADUSize; i++) {
+	      MSGf(" %02x", u8ModbusADU[i]);
+	  }
+	  MSG("");
+      }
+#endif
     // calculate CRC
     u16CRC = 0xFFFF;
     for (i = 0; i < (u8ModbusADUSize - 2); i++)
     {
       u16CRC = crc16_update(u16CRC, u8ModbusADU[i]);
     }
+    //MSGf("  expect CRC %02x %02x\n", (int)(u16CRC&0xFF), (int)((u16CRC>>8)&0xFF));
     
     // verify CRC
     if (!u8MBStatus && (lowByte(u16CRC) != u8ModbusADU[u8ModbusADUSize - 2] ||
       highByte(u16CRC) != u8ModbusADU[u8ModbusADUSize - 1]))
     {
+      MSG("  CRC INVALID");
       u8MBStatus = ku8MBInvalidCRC;
     }
   }

@@ -201,7 +201,8 @@ class ModbusMaster
     void send(uint32_t);
     uint8_t available(void);
     uint16_t receive(void);
-    
+    uint16_t getResponseTimeout() { return ku16MBResponseTimeout; }
+    void setResponseTimeout(uint16_t ms) {ku16MBResponseTimeout=ms; }
     
     uint8_t  readCoils(uint16_t, uint16_t);
     uint8_t  readDiscreteInputs(uint16_t, uint16_t);
@@ -249,7 +250,7 @@ class ModbusMaster
     static const uint8_t ku8MBReadWriteMultipleRegisters = 0x17; ///< Modbus function 0x17 Read Write Multiple Registers
     
     // Modbus timeout [milliseconds]
-    static const uint16_t ku16MBResponseTimeout          = 2000; ///< Modbus timeout [milliseconds]
+    uint16_t ku16MBResponseTimeout          = 2000; ///< Modbus timeout [milliseconds]
     
     // master function that conducts Modbus transactions
     uint8_t ModbusMasterTransaction(uint8_t u8MBFunction);

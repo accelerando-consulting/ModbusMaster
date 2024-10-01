@@ -76,6 +76,9 @@ void ModbusMaster::begin(uint8_t slave, Stream &serial)
   pinMode(__MODBUSMASTER_DEBUG_PIN_A__, OUTPUT);
   pinMode(__MODBUSMASTER_DEBUG_PIN_B__, OUTPUT);
 #endif
+
+  // flush any junk in the RX buffer
+  while (serial.read() != -1);
 }
 
 

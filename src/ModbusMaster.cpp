@@ -830,7 +830,7 @@ uint8_t ModbusMaster::ModbusMasterTransaction(uint8_t u8MBFunction)
   }
   
   // verify response is large enough to inspect further
-  if (!u8MBStatus && u8ModbusADUSize >= 5)
+  if (!u8MBStatus && u8ModbusADUSize >= 5 && !u8BytesLeft)
   {
 #if 0
       if (_dbg) {
